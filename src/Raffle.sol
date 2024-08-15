@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 // Layout of Contract:
 // version
 // imports
@@ -19,7 +21,7 @@
 // private
 // view & pure functions
 
-// SPDC-License-Identifier: MIT
+
 
 pragma solidity ^0.8.19;
 
@@ -35,17 +37,23 @@ contract Raffle {
     /* Errors */
     // When working with errors, use if statements. Custom errors are more gas efficient than require statements
     error Raffle__SendMoreToEnterRaffle();
+    error Raffle__NotEnoughTimePassed();
 
     /* State Variables */
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
+    // @dev interval is in seconds
+    uint256 private immutable i_interval;
+    uint256 private s_lastTimeStamp;
 
     /* Events */
     event RaffleEntered(address indexed player);
 
     /* Constructor */
-    constructor(uint256 entranceFee) {
+    constructor(uint256 entranceFee, uint256 interval) {
         i_entranceFee = entranceFee;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp;
     }
 
     function enterRaffle() public payable {
@@ -61,7 +69,23 @@ contract Raffle {
     }
 
     function pickWinner() public {
-        // Pick the winner
+        // check to see if enough time has passed
+        if ((block.timestamp - s_lastTimeStamp) < i_interval) {
+            revert();
+        }
+        // Get our random Number
+        requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: s_keyHash,
+                subId: s_subscriptionId,
+                requestConfirmations: requestConfirmations,
+                callbackGasLimit: callbackGasLimit,
+                numWords: numWords,
+                // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
+            })
+        );
+
     }
 
     function closeRaffle() public {
