@@ -43,6 +43,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
     error Raffle__NotEnoughTimePassed();
     error Raffle__TransferFailed();
     error Raffle__NotOpen();
+    error Raffle__UpkeepNotNeeded(uint256 balance, uint256 playersLength, uint256 raffleState);
 
     /* Type Declarations */
     enum RaffleState { 
@@ -115,7 +116,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
      * @return performData - ignored
     
      */
-    function checkUpkeep(bytes calldata /* checkData */) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
+    function checkUpkeep(bytes memory /* checkData */) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
        bool timeHasPassed =  (block.timestamp - s_lastTimeStamp) >= i_interval;
        bool isOpen = s_raffleState == RaffleState.OPEN;
        bool hasBalance = address(this).balance > 0;
@@ -124,12 +125,12 @@ contract Raffle is VRFConsumerBaseV2Plus{
        return (upkeepNeeded, "");
     }
 
-    function pickWinner() public {
+    function performUpkeep(bytes calldata /* performData */) external {
         // check to see if enough time has passed
-        if ((block.timestamp - s_lastTimeStamp) < i_interval) {
-            revert();
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
         }
-
         s_raffleState = RaffleState.CALCULATING;
         // Get our random Number
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
