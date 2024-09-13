@@ -69,6 +69,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
     /* Events */
     event RaffleEntered(address indexed player);
     event WinnerPicked(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     /* Constructor */
     /**
@@ -144,6 +145,8 @@ contract Raffle is VRFConsumerBaseV2Plus{
                 extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
             })
         );
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(request);
+        emit RequestedRaffleWinner(requestId);
 
     }
 
